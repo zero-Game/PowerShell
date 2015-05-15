@@ -1,0 +1,116 @@
+<#
+.SYNOPSIS
+    [redacted]
+.DESCRIPTION
+	[redacted]
+.NOTES
+	Version History
+
+	Version   Date         Author         Details
+	1.0       21/04/2015   Luke Morbin    Initial release
+	1.1       24/04/2015   Luke Morbin    Now adds to relevant GPOs
+	
+.EXAMPLE CSV
+EmployeeID,Firstname,Surname,CurrentPosition,Work Email,Works For,Base,Enabled,Username,Password,OU
+#>
+param([SWITCH]$NoPrompt=$false)
+
+##### DEFINITIONS #####################################################################################################################
+
+$scriptTitle = "New Starter"
+$scriptDescription = "Automate Account Creation"
+$version = 1.0
+
+$pathToUsersFile = "[redacted]"
+
+##### CORE FUNCTIONS ##################################################################################################################
+
+function ExitScript
+{
+	param($msg=$msgAnyKeyToExit)
+	write-host ("`n  " + $msg)
+	$KeyPressed = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+	exit
+}
+
+function LoadADModule
+{
+	write-host "`nChecking for ActiveDirectory PowerShell Module..." -nonewline
+	if (-not(Get-Module -name "ActiveDirectory")) 
+	{ 
+		if (Get-Module -ListAvailable | Where-Object { $_.name -eq "ActiveDirectory" }) 
+		{
+			write-host "[OK]" -f green
+			write-host "Loading ActiveDirectory PowerShell Module..." -nonewline
+			try
+			{
+				Import-Module -Name "ActiveDirectory"
+				write-host "[OK]" -f green
+			}
+			catch
+			{
+				write-host "`nERROR: The following error occurred while importing the ActiveDirectory PowerShell Module." -f red
+				ExitScript
+			}
+		} else {
+			write-host "`nActiveDirectory PowerShell Module not found. Try installing it first." -f red
+			ExitScript
+		}
+	} else {
+		write-host "[OK]" -f green
+	}
+}
+
+##### MAIN ############################################################################################################################
+
+LoadADModule
+
+write-host ("`n" + $scriptTitle + " - Version: " + $version) -f white
+write-host ("`n" + $scriptDescription) -f white
+if ($NoPrompt -eq $false)
+{
+	$proceed = read-host "`nAre you sure you want to proceed [Y/N] (N = Default)"
+	if ($proceed -ne "Y") { exit }
+}
+
+try
+{
+	$importedUsers = Import-CSV $pathToUsersFile
+}
+catch
+{
+	write-host "Error accessing input" -f red
+}
+
+
+ForEach ($user in $importedUsers)
+{
+	
+		$UserPrincipalName = ($user.username + "@[redacted]")
+		$Name = $user.Firstname+" "+$user.Surname
+        $SamAccountName = $user.username
+        $GivenName = $user.Firstname
+        $SurName = $user.Surname
+        $JobTitle = $user.CurrentPosition
+        $EmployeeNumber = $user.EmployeeID
+        $PathToOU = $user.Path
+        $UserPassword = $user.Password
+
+	try
+	{
+	
+New-ADUser -SamAccountName $SamAccountName -UserPrincipalName $UserPrincipalName -Name $Name -displayName $Name -givenName $GivenName -surname $SurName -description $JobTitle -employeeNumber $EmployeeNumber -Path $PathToOU -AccountPassword (ConvertTo-SecureString $UserPassword -AsPlainText -Force) -Enabled $True -ChangePasswordAtLogon $False -PasswordNeverExpires $False
+		Write-host "$Name -" -f white -nonewline
+		Write-host "Account Created" -f green
+		
+Add-ADGroupMember -Identity "[redacted]" -Member $SamAccountName
+
+	}
+	catch
+	{
+		Write-host "Failed working Script Block" -f red
+	}
+}
+
+
+ExitScript -msg "Finished!"
