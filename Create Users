@@ -86,8 +86,8 @@ catch
 ForEach ($user in $importedUsers)
 {
 	
-		$UserPrincipalName = ($user.username + "@[redacted]")
-		$Name = $user.Firstname+" "+$user.Surname
+	$UserPrincipalName = ($user.username + "@[redacted]")
+	$Name = $user.Firstname+" "+$user.Surname
         $SamAccountName = $user.username
         $GivenName = $user.Firstname
         $SurName = $user.Surname
