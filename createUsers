@@ -93,7 +93,7 @@ ForEach ($user in $importedUsers)
         $SurName = $user.Surname
         $JobTitle = $user.CurrentPosition
         $EmployeeNumber = $user.EmployeeID
-        $PathToOU = $user.Path
+        $PathToOU = $user.OU
         $UserPassword = $user.Password
 
 	try
