@@ -127,37 +127,45 @@ foreach ($computer in $importedComputers)
 		$assetToBeDisabled = Get-ADComputer $computer.Asset
         $Computertodisable = $assettobedisabled.Name
 		
-		try{
-		write-host ("Processing computer: " + $assetToBeDisabled.name) -f white
-		Log -Message "Computer: $computerToDisable Disabled by: $env:USERNAME" -LogFile $LogFile
+		try
+		{
+			write-host ("Processing computer: " + $assetToBeDisabled.name) -f white
+				Log -Message "Computer: $computerToDisable Disabled by: $env:USERNAME" -LogFile $LogFile
 		}
-		catch{
-		write-host  "Failed to process" -f red
+		catch
+		{
+			write-host  "Failed to process" -f red
 		}
 		
-		try{
+		try
+		{
 		Set-ADComputer -Identity $assetToBeDisabled.name -Description "Account Disabled by team: $dateTime"
-        Log -Message "AD Description set for Asset: $computerToDisable"  -LogFile $LogFile
-		write-host "Description Amended - " -nonewline -f green
+			write-host "Description Amended - " -nonewline -f green
+				Log -Message "AD Description set for Asset: $computerToDisable"  -LogFile $LogFile
 		}
-		catch{
-		write-host "Failed amending description" -f red
+		catch
+		{
+			write-host "Failed amending description" -f red
 		}
 		
-		try{
+		try
+		{
 		Disable-ADAccount -Identity $assetToBeDisabled.distinguishedname
-		write-host "Account Disabled - " -nonewline -f green
+			write-host "Account Disabled - " -nonewline -f green
 		}
-		catch{
-		write-host "Failed to disable" -f red
+		catch
+		{
+			write-host "Failed to disable" -f red
 		}
 		
-		try{
+		try
+		{
 		Move-ADobject -Identity $assetToBeDisabled.distinguishedname -TargetPath $targetOU
-		write-host "Computer Moved" -f green
+			write-host "Computer Moved" -f green
 		}
-		catch{
-		write-host "Failed to move computer" -f red
+		catch
+		{
+			write-host "Failed to move computer" -f red
 		}
 }
 
