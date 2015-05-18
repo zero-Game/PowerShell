@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    disableComputerName
+	disableComputerName
 .DESCRIPTION
 	Disable computers based on there full asset name
 .NOTES
