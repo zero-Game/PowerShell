@@ -1,0 +1,166 @@
+<#
+.SYNOPSIS
+    disableComputerName
+.DESCRIPTION
+	Disable computers based on there full asset name
+.NOTES
+	Version History
+
+	Version   Date         Author         Details
+	1.0       01/05/2015   Luke Morbin    Initial Release
+	1.1       04/05/2015   Luke Morbin    Added Log Function
+#>
+param([SWITCH]$NoPrompt=$false)
+
+##### DEFINITIONS #####################################################################################################################
+
+[STRING]$version="1.0"
+
+$scriptFileName= "disableComputer.ps1"
+$scriptTitle= "Disable Computers"
+$scriptDescription= "Disable leaver computer AD accounts"
+
+$dateTime = Get-Date
+$dateTimeFormat= "dd/MM/yyyy - HH:mm:ss"
+
+$pathToUsersFile= "[redacted]"
+$LogFile= "[redacted]"
+
+$targetOU = "[redacted]"
+
+##### CORE FUNCTIONS ##################################################################################################################
+
+function ExitScript
+{
+	param($msg=$msgAnyKeyToExit)
+	write-host ("`n  " + $msg)
+	$KeyPressed = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+	exit
+}
+
+function Pause
+{
+	param($msg=$msgAnyKeyToContinue)
+	write-host ("`n  " + $msg)
+	$KeyPressed = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+function LoadADModule
+{
+	write-host "`nChecking for ActiveDirectory PowerShell Module..." -nonewline
+	if (-not(Get-Module -name "ActiveDirectory")) 
+	{ 
+		if (Get-Module -ListAvailable | Where-Object { $_.name -eq "ActiveDirectory" }) 
+		{
+			write-host "[OK]" -f green
+			write-host "Loading ActiveDirectory PowerShell Module..." -nonewline
+			try
+			{
+				Import-Module -Name "ActiveDirectory"
+				write-host "[OK]" -f green
+			}
+			catch
+			{
+				write-host "`nERROR: The following error occurred while importing the ActiveDirectory PowerShell Module." -f red
+				ExitScript
+			}
+		} else {
+			write-host "`nActiveDirectory PowerShell Module not found. Try installing it first." -f red
+			ExitScript
+		}
+	} else {
+		write-host "[OK]" -f green
+	}
+}
+
+function Log {
+    Param (
+		[Parameter(Mandatory=$false)]
+		$Message,
+ 
+		[Parameter(Mandatory=$false)]
+		$ErrorMessage,
+ 
+		[Parameter(Mandatory=$false)]
+		$Component,
+ 
+		[Parameter(Mandatory=$false)]
+		[int]$Type,
+		
+		[Parameter(Mandatory=$true)]
+		$LogFile
+	)
+<#
+Type: 1 = Normal, 2 = Warning (yellow), 3 = Error (red)
+#>
+	$Time = Get-Date -Format "HH:mm:ss.ffffff"
+	$Date = Get-Date -Format "MM-dd-yyyy"
+ 
+	if ($ErrorMessage -ne $null) {$Type = 3}
+	if ($Component -eq $null) {$Component = " "}
+	if ($Type -eq $null) {$Type = 1}
+ 
+	$LogMessage = "<![LOG[$Message $ErrorMessage" + "]LOG]!><time=`"$Time`" date=`"$Date`" component=`"$Component`" context=`"`" type=`"$Type`" thread=`"`" file=`"`">"
+	$LogMessage | Out-File -Append -Encoding UTF8 -FilePath $LogFile
+}
+
+##### MAIN ############################################################################################################################
+
+LoadADModule
+
+write-host ("`n" + $scriptTitle + " - Version: " + $version) -f cyan
+write-host ("`n" + $scriptDescription) -f cyan
+
+if ($NoPrompt -eq $false)
+{
+	$proceed = read-host "`nAre you sure you want to proceed [Y/N] (N = Default)"
+	if ($proceed -ne "Y") { exit }
+}
+
+	$importedComputers = Import-CSV $pathToUsersFile
+	Log -Message "New Data Imported" -Component "Import-CSV" -LogFile $LogFile
+
+	
+foreach ($computer in $importedComputers)
+{
+	
+		$assetToBeDisabled = Get-ADComputer $computer.Asset
+        $Computertodisable = $assettobedisabled.Name
+		
+		try{
+		write-host ("Processing computer: " + $assetToBeDisabled.name) -f white
+		Log -Message "Computer: $computerToDisable Disabled by: $env:USERNAME" -LogFile $LogFile
+		}
+		catch{
+		write-host  "Failed to process" -f red
+		}
+		
+		try{
+		Set-ADComputer -Identity $assetToBeDisabled.name -Description "Account Disabled by team: $dateTime"
+        Log -Message "AD Description set for Asset: $computerToDisable"  -LogFile $LogFile
+		write-host "Description Amended - " -nonewline -f green
+		}
+		catch{
+		write-host "Failed amending description" -f red
+		}
+		
+		try{
+		Disable-ADAccount -Identity $assetToBeDisabled.distinguishedname
+		write-host "Account Disabled - " -nonewline -f green
+		}
+		catch{
+		write-host "Failed to disable" -f red
+		}
+		
+		try{
+		Move-ADobject -Identity $assetToBeDisabled.distinguishedname -TargetPath $targetOU
+		write-host "Computer Moved" -f green
+		}
+		catch{
+		write-host "Failed to move computer" -f red
+		}
+}
+
+write-host "Finished" -f cyan
+
+Pause
